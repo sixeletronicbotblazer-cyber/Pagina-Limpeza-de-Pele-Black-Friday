@@ -66,7 +66,12 @@ server.log
 # Local screenshots & analysis artifacts
 preview-*.png
 preview*.png
+check-*.png
 analysis*.json
+c1.json
+c2.json
+c3.json
+c4.json
 a2.json
 a3.json
 a4.json
@@ -74,3 +79,6 @@ a5.json
 
 # Worklog (internal coordination)
 worklog.md
+
+# Build helper scripts (internal)
+/scripts/

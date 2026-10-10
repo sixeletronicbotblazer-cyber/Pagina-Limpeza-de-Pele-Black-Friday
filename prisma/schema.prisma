@@ -1,9 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -29,4 +26,30 @@ model Post {
   authorId  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Depoimentos reais cadastrados pelo produtor.
+// Sem registros aprovados, a seção fica oculta na página pública.
+model Testimonial {
+  id        String   @id @default(cuid())
+  comment   String   // comentário curto (~2 linhas)
+  firstName String   // primeiro nome
+  city      String   // cidade
+  uf        String   // UF (2 letras)
+  rating    Int      // nota de 1 a 5
+  approved  Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+// Compras confirmadas no checkout (webhook da Cakto).
+// name/city/uf podem ser nulos -> "Uma nova inscrição foi confirmada."
+model Purchase {
+  id          String   @id @default(cuid())
+  externalId  String   @unique // id da transação na Cakto (deduplicação)
+  firstName   String?
+  city        String?
+  uf          String?
+  amountBrl   Int?     // valor em centavos (opcional)
+  confirmedAt DateTime @default(now())
+  rawPayload  String?  // payload bruto para auditoria
 }

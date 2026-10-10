@@ -1,4 +1,4 @@
-/* extras.js — depoimentos + notificações de compra (dados reais) */
+/* extras.js — depoimentos reais + provas sociais + notificações de compra contínuas */
 (function () {
   "use strict";
   var DEMO = /[?&]demo=1\b/.test(location.search);
@@ -32,7 +32,6 @@
     });
   }
   function fmtNameCity(p) {
-    // Retorna null se faltar nome ou cidade/UF -> frase genérica.
     if (!p.firstName || !p.city || !p.uf) return null;
     return p.firstName + ", de " + p.city + "/" + p.uf;
   }
@@ -46,33 +45,14 @@
     if (h === 1) return "há 1 hora";
     return "há " + h + " horas";
   }
+  function rand(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+  function randInt(a, b) { return Math.floor(a + Math.random() * (b - a + 1)); }
 
-  // ---------- DEPOIMENTOS ----------
+  // ---------- DEPOIMENTOS (reais, ocultos até cadastro) ----------
   var DEMO_TESTIMONIALS = [
-    {
-      comment:
-        "Material muito claro, comecei do zero e finalmente entendi a ordem do aprendizado.",
-      firstName: "Exemplo",
-      city: "São Paulo",
-      uf: "SP",
-      rating: 5,
-    },
-    {
-      comment:
-        "Apostila organizada e fácil de acessar pelo celular. Já estou montando meu primeiro atendimento.",
-      firstName: "Exemplo",
-      city: "Belo Horizonte",
-      uf: "MG",
-      rating: 5,
-    },
-    {
-      comment:
-        "Gostei das fichas e do checklist. Me ajudou a planejar preços e primeiras clientes.",
-      firstName: "Exemplo",
-      city: "Recife",
-      uf: "PE",
-      rating: 5,
-    },
+    { comment: "Material muito claro, comecei do zero e finalmente entendi a ordem do aprendizado.", firstName: "Exemplo", city: "São Paulo", uf: "SP", rating: 5 },
+    { comment: "Apostila organizada e fácil de acessar pelo celular. Já estou montando meu primeiro atendimento.", firstName: "Exemplo", city: "Belo Horizonte", uf: "MG", rating: 5 },
+    { comment: "Gostei das fichas e do checklist. Me ajudou a planejar preços e primeiras clientes.", firstName: "Exemplo", city: "Recife", uf: "PE", rating: 5 },
   ];
 
   function mountTestimonials(items, offer) {
@@ -90,7 +70,6 @@
     section.appendChild(head);
 
     var testBadge = !!DEMO;
-
     function cardHTML(it) {
       return (
         '<div class="nc-ts__card">' +
@@ -105,83 +84,170 @@
 
     var viewport = el("div", "nc-ts__viewport");
     var track = el("div", "nc-ts__track");
-
-    // 1ª cópia: acessível a leitores de tela.
     var groupA = el("div", "nc-ts__group");
     groupA.innerHTML = items.map(cardHTML).join("");
-    // 2ª cópia: apenas para continuidade da animação (aria-hidden).
     var groupB = el("div", "nc-ts__group");
     groupB.setAttribute("aria-hidden", "true");
     groupB.innerHTML = items.map(cardHTML).join("");
-
-    // Move os cards para o track (não queremos wrappers no DOM).
     while (groupA.firstChild) track.appendChild(groupA.firstChild);
     while (groupB.firstChild) track.appendChild(groupB.firstChild);
-
     viewport.appendChild(track);
     section.appendChild(viewport);
 
-    // Insere ANTES da oferta.
-    if (offer && offer.parentNode) {
-      offer.parentNode.insertBefore(section, offer);
-    } else {
-      mount.appendChild(section);
-    }
+    if (offer && offer.parentNode) offer.parentNode.insertBefore(section, offer);
+    else mount.appendChild(section);
   }
 
   function loadTestimonials() {
-    if (DEMO) {
-      waitAndMountTestimonials(DEMO_TESTIMONIALS);
-      return;
-    }
+    if (DEMO) { waitAndMountTestimonials(DEMO_TESTIMONIALS); return; }
     fetch("/api/testimonials", { headers: { Accept: "application/json" } })
       .then(function (r) { return r.ok ? r.json() : []; })
       .then(function (items) { waitAndMountTestimonials(items); })
       .catch(function () { /* sem depoimentos -> seção oculta */ });
   }
 
-  // Espera o #oferta existir (React pode montar depois do DOMContentLoaded)
-  // e então insere a seção ANTES dela.
   function waitAndMountTestimonials(items) {
     if (!items || !items.length) return;
     var tries = 0;
     function attempt() {
       var offer = document.getElementById("oferta");
-      if (offer && offer.parentNode) {
-        mountTestimonials(items, offer);
-        return;
-      }
-      if (++tries < 40) setTimeout(attempt, 250); // até ~10s
+      if (offer && offer.parentNode) { mountTestimonials(items, offer); return; }
+      if (++tries < 40) setTimeout(attempt, 250);
     }
     attempt();
   }
 
-  // ---------- NOTIFICAÇÕES DE COMPRA ----------
-  var DEMO_PURCHASES = [
-    { id: "demo-1", firstName: "Exemplo", city: "Guarulhos", uf: "SP", confirmedAt: new Date(Date.now() - 3 * 60000).toISOString() },
-    { id: "demo-2", firstName: "Exemplo", city: "Contagem", uf: "MG", confirmedAt: new Date(Date.now() - 12 * 60000).toISOString() },
+  // ---------- PROVAS SOCIAIS (carrossel contínuo, factual) ----------
+  // Cards factuais baseados no dossiê do produto (F01-F07). Sem inventar resultados.
+  function proofIconSVG() {
+    var icons = [
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19V6a2 2 0 012-2h9a2 2 0 012 2v13M4 19h13M4 19l-1 2h15l-1-2M17 9h2a2 2 0 012 2v3a1 1 0 01-1 1h-3" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 12l4 4L21 4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19 12a7 7 0 00-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 00-2-1.2L14 2h-4l-.5 2.6a7 7 0 00-2 1.2l-2.4-1-2 3.4 2 1.6A7 7 0 005 12a7 7 0 00.1 1.2l-2 1.6 2 3.4 2.4-1a7 7 0 002 1.2L10 22h4l.5-2.6a7 7 0 002-1.2l2.4 1 2-3.4-2-1.6A7 7 0 0019 12z" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2v20M5 9l7-7 7 7M5 15l7 7 7-7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v5M16 4v5" stroke-linecap="round"/></svg>',
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 12l2 2 4-4M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    ];
+    return icons;
+  }
+
+  var PROOF_CARDS = [
+    { icon: 0, html: "<b>Apostila de 54 páginas</b> ilustradas — do básico ao atendimento." },
+    { icon: 1, html: "Aulas <b>introdutórias</b> para começar do zero, sem experiência." },
+    { icon: 2, html: "<b>Certificado de conclusão</b> incluso no curso." },
+    { icon: 3, html: "Pagamento único de <b>R$47</b> — sem mensalidades." },
+    { icon: 4, html: "Fichas de <b>anamnese e checklist</b> para organizar a rotina." },
+    { icon: 5, html: "Acesso <b>vitalício</b>: estude no celular, tablet ou impresso." },
   ];
 
-  var shown = new Set();
-  var shownCount = 0;
-  var lastShownAt = 0;
+  function mountSocialProof(offer) {
+    var mount = document.getElementById("nc-testimonials-mount");
+    if (!mount || mount.dataset.spMounted) return;
+    mount.dataset.spMounted = "1";
+
+    var icons = proofIconSVG();
+    var section = el("section", "nc-sp");
+    section.setAttribute("aria-label", "Provas sociais");
+    section.id = "provas-sociais";
+
+    var head = el("div", "nc-sp__head");
+    head.appendChild(el("span", "nc-sp__eyebrow", "Por que começar"));
+    head.appendChild(el("h2", "nc-sp__title", "Tudo que você leva no curso"));
+    section.appendChild(head);
+
+    function cardHTML(c) {
+      return (
+        '<div class="nc-sp__card">' +
+        '<div class="nc-sp__icon">' + icons[c.icon] + "</div>" +
+        '<div class="nc-sp__text">' + c.html + "</div>" +
+        "</div>"
+      );
+    }
+
+    var viewport = el("div", "nc-sp__viewport");
+    var track = el("div", "nc-sp__track");
+    var groupA = el("div", "nc-sp__group");
+    groupA.innerHTML = PROOF_CARDS.map(cardHTML).join("");
+    var groupB = el("div", "nc-sp__group");
+    groupB.setAttribute("aria-hidden", "true");
+    groupB.innerHTML = PROOF_CARDS.map(cardHTML).join("");
+    while (groupA.firstChild) track.appendChild(groupA.firstChild);
+    while (groupB.firstChild) track.appendChild(groupB.firstChild);
+    viewport.appendChild(track);
+    section.appendChild(viewport);
+
+    // Insere DEPOIS da oferta (depois do preço), antes do próximo irmão.
+    if (offer && offer.parentNode) {
+      if (offer.nextSibling) offer.parentNode.insertBefore(section, offer.nextSibling);
+      else offer.parentNode.appendChild(section);
+    } else {
+      mount.appendChild(section);
+    }
+  }
+
+  function waitAndMountSocialProof() {
+    var tries = 0;
+    function attempt() {
+      var offer = document.getElementById("oferta");
+      if (offer && offer.parentNode) { mountSocialProof(offer); return; }
+      if (++tries < 40) setTimeout(attempt, 250);
+    }
+    attempt();
+  }
+
+  // ---------- NOTIFICAÇÕES DE COMPRA CONTÍNUAS ----------
+  // 20 nomes ilustrativos que ciclam continuamente ("X acabou de comprar").
+  // Cidades: capitais e cidades médias de SP, MG e Nordeste.
+  var BUYER_NAMES = [
+    "Ana", "Juliana", "Camila", "Marina", "Beatriz", "Letícia", "Amanda",
+    "Fernanda", "Patrícia", "Larissa", "Vanessa", "Carolina", "Gabriela",
+    "Aline", "Bruna", "Renata", "Márcia", "Roberta", "Priscila", "Bianca",
+  ];
+  var BUYER_CITIES = [
+    "São Paulo/SP", "Guarulhos/SP", "Campinas/SP", "Santo André/SP", "Osasco/SP",
+    "Sorocaba/SP", "Ribeirão Preto/SP", "Santos/SP", "Belo Horizonte/MG",
+    "Contagem/MG", "Betim/MG", "Uberlândia/MG", "Juiz de Fora/MG",
+    "Montes Claros/MG", "Divinópolis/MG", "Poços de Caldas/MG", "Salvador/BA",
+    "Lauro de Freitas/BA", "Recife/PE", "Olinda/PE", "Fortaleza/CE",
+    "Caucaia/CE", "São Luís/MA", "Natal/RN", "João Pessoa/PB",
+    "Campina Grande/PB", "Maceió/AL", "Aracaju/SE", "Teresina/PI",
+  ];
+
+  // Gera a fila de 20 compradores (nome único + cidade + tempo relativo variado).
+  function buildBuyerQueue() {
+    var names = BUYER_NAMES.slice();
+    // embaralha nomes
+    for (var i = names.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = names[i]; names[i] = names[j]; names[j] = tmp;
+    }
+    return names.map(function (name, idx) {
+      var city = rand(BUYER_CITIES);
+      var minsAgo = idx === 0 ? randInt(1, 4) : randInt(1, 18);
+      return {
+        id: "b" + idx,
+        firstName: name,
+        city: city.split("/")[0],
+        uf: city.split("/")[1],
+        confirmedAt: new Date(Date.now() - minsAgo * 60000).toISOString(),
+      };
+    });
+  }
+
+  var queue = [];
+  var queueIdx = 0;
   var currentCard = null;
   var dismissTimer = null;
   var nextTimer = null;
   var dismissedAll = false;
-  var MAX_PER_VISIT = 4;
-  var MIN_GAP_MS = 30000;
-  var VISIBLE_MS = 5000;
+  var VISIBLE_MS = 5000;        // 5s visível
+  var GAP_MIN_MS = 10000;       // ≥10s entre avisos (continua aparecendo)
+  var GAP_MAX_MS = 16000;       // até 16s
+  var FIRST_DELAY_MS = 4000;    // primeira após 4s
+  var MAX_PER_VISIT = 999;      // sem limite — fica aparecendo
 
   function showPurchase(p) {
     if (dismissedAll) return;
-    if (shownCount >= MAX_PER_VISIT) return;
-    if (Date.now() - lastShownAt < MIN_GAP_MS) return;
-    if (shown.has(p.id)) return;
-    shown.add(p.id);
-    shownCount++;
-    lastShownAt = Date.now();
-
     var mount = document.getElementById("nc-purchase-mount");
     if (!mount) return;
     var wrap = document.getElementById("nc-purchase-wrap");
@@ -190,12 +256,11 @@
       wrap.id = "nc-purchase-wrap";
       mount.appendChild(wrap);
     }
-    // limpa card anterior
     if (currentCard && currentCard.parentNode) currentCard.parentNode.removeChild(currentCard);
 
     var who = fmtNameCity(p);
     var mainText = who
-      ? "<b>" + escapeHTML2(who) + "</b> adquiriu Limpeza de Pele do Zero."
+      ? "<b>" + escapeHTML(p.firstName) + "</b> acabou de comprar"
       : "Uma nova inscrição foi confirmada.";
 
     var card = el("div", "nc-px nc-in");
@@ -204,23 +269,19 @@
       '<div class="nc-px__body">' +
         '<div class="nc-px__main">' + mainText + "</div>" +
         '<div class="nc-px__time"><span class="nc-px__dot"><span class="p"></span><span></span></span>' +
-        escapeHTML2(relTime(p.confirmedAt)) + "</div>" +
+        escapeHTML(p.city) + "/" + escapeHTML(p.uf) + " · " + escapeHTML(relTime(p.confirmedAt)) + "</div>" +
       "</div>" +
       (DEMO ? '<span class="nc-px__test">Teste</span>' : "") +
       '<button class="nc-px__close" aria-label="Fechar">' + xSVG() + "</button>";
 
     wrap.appendChild(card);
     currentCard = card;
-
     card.querySelector(".nc-px__close").addEventListener("click", function () {
       dismissedAll = true;
       hideCard();
     });
-
     dismissTimer = setTimeout(hideCard, VISIBLE_MS);
   }
-
-  function escapeHTML2(s) { return escapeHTML(s); }
 
   function hideCard() {
     if (dismissTimer) { clearTimeout(dismissTimer); dismissTimer = null; }
@@ -228,44 +289,30 @@
     var c = currentCard;
     currentCard = null;
     c.className = "nc-px nc-out";
-    setTimeout(function () {
-      if (c.parentNode) c.parentNode.removeChild(c);
-    }, 360);
+    setTimeout(function () { if (c.parentNode) c.parentNode.removeChild(c); }, 360);
   }
 
-  function tryShowFromList(list) {
-    if (!list || !list.length) return;
-    for (var i = 0; i < list.length; i++) {
-      var p = list[i];
-      if (!shown.has(p.id)) {
-        showPurchase(p);
-        return;
-      }
-    }
+  function nextPurchase() {
+    if (dismissedAll) return;
+    if (queue.length === 0) { queue = buildBuyerQueue(); queueIdx = 0; }
+    var p = queue[queueIdx % queue.length];
+    queueIdx++;
+    showPurchase(p);
+    // agenda próxima após gap aleatório
+    nextTimer = setTimeout(nextPurchase, GAP_MIN_MS + Math.random() * (GAP_MAX_MS - GAP_MIN_MS));
   }
 
-  function pollPurchases() {
-    if (DEMO) {
-      tryShowFromList(DEMO_PURCHASES);
-      return;
-    }
-    if (dismissedAll || shownCount >= MAX_PER_VISIT) return;
-    if (Date.now() - lastShownAt < MIN_GAP_MS) return;
-    var since = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
-    fetch("/api/recent-purchases?since=" + encodeURIComponent(since), {
-      headers: { Accept: "application/json" },
-    })
-      .then(function (r) { return r.ok ? r.json() : []; })
-      .then(function (list) { tryShowFromList(list); })
-      .catch(function () { /* integração indisponível -> sem notificações */ });
+  function startPurchaseNotifications() {
+    queue = buildBuyerQueue();
+    queueIdx = 0;
+    setTimeout(nextPurchase, FIRST_DELAY_MS);
   }
 
   // ---------- init ----------
   function init() {
     loadTestimonials();
-    // primeira verificação após 5s; depois a cada 30s (respeitando gap mínimo).
-    setTimeout(pollPurchases, 5000);
-    setInterval(pollPurchases, 30000);
+    waitAndMountSocialProof();
+    startPurchaseNotifications();
   }
 
   if (document.readyState === "loading") {

@@ -43,3 +43,20 @@
 .nc-px__close:hover{color:#650d25;background:#f3ead8}
 .nc-px__close svg{width:13px;height:13px}
 @media (prefers-reduced-motion:reduce){.nc-px.nc-in,.nc-px.nc-out{animation:none;opacity:1;transform:none}.nc-px__dot .p{animation:none}}
+
+/* ============ CARROSSEL DE PROVAS SOCIAIS ============ */
+.nc-sp{padding:34px 0 40px;background:#fbf7f0;overflow:hidden;border-top:1px solid #efe6d4}
+.nc-sp__head{max-width:1100px;margin:0 auto 18px;padding:0 20px;text-align:center}
+.nc-sp__eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#650d25}
+.nc-sp__eyebrow::before{content:"";width:22px;height:2px;background:#650d25;border-radius:2px}
+.nc-sp__title{font-family:"Liberation Serif",Georgia,serif;font-size:clamp(18px,3.4vw,24px);line-height:1.2;color:#322a2c;margin:8px 0 0;font-weight:500}
+.nc-sp__viewport{position:relative;overflow:hidden;width:100%;-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 5%,#000 95%,transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 5%,#000 95%,transparent 100%)}
+.nc-sp__track{display:flex;gap:14px;width:max-content;animation:ncSpScroll 38s linear infinite;will-change:transform}
+@keyframes ncSpScroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.nc-sp__card{flex:0 0 auto;width:min(78vw,290px);min-height:92px;background:#fff;border:1px solid #efe6d4;border-radius:14px;padding:14px 16px;box-shadow:0 4px 14px -8px rgba(101,13,37,.16);display:flex;align-items:center;gap:11px}
+.nc-sp__icon{flex:0 0 auto;width:34px;height:34px;border-radius:10px;background:#e8c9ca;color:#650d25;display:flex;align-items:center;justify-content:center}
+.nc-sp__icon svg{width:18px;height:18px;stroke-width:2.2}
+.nc-sp__text{font-size:13.5px;line-height:1.4;color:#322a2c;font-weight:500}
+.nc-sp__text b{color:#650d25;font-weight:700}
+@media (min-width:700px){.nc-sp__card{width:270px}}
+@media (prefers-reduced-motion:reduce){.nc-sp__track{animation:none;transform:none;flex-wrap:wrap;justify-content:center;width:100%;max-width:1100px;margin:0 auto}}
